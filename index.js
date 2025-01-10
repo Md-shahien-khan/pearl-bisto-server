@@ -46,11 +46,23 @@ async function run() {
     });
 
     // part 8 cart collection
-    app.post('carts', async(req, res) =>{
+    app.post('/carts', async(req, res) =>{
       const cartItem = req.body;
       const result = await cartCollection.insertOne(cartItem);
       res.send(result);
-    })
+    });
+
+    // step 9 get carts
+    app.get('/carts', async(req, res) =>{
+      // step 10 get email
+      // const {email} = req.query;
+      const email = req.query.email
+      const query = {email : email};
+      console.log(query)
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
+
 
 
 
