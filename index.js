@@ -28,7 +28,9 @@ async function run() {
     await client.connect();
     // part 2 find multiple documents
     const menuCollection = client.db("pearl_bistro").collection("menu");
-    // part 5 find multiple documents
+    // part 5 cart documents
+    const cartCollection = client.db("pearl_bistro").collection("carts");
+    // part 7 find multiple documents
     const reviewsCollection = client.db("pearl_bistro").collection("reviews");
 
     // part 3 get all the menu
@@ -41,6 +43,13 @@ async function run() {
     app.get('/reviews', async(req, res) =>{
         const result = await reviewsCollection.find().toArray();
         res.send(result);
+    });
+
+    // part 8 cart collection
+    app.post('carts', async(req, res) =>{
+      const cartItem = req.body;
+      const result = await cartCollection.insertOne(cartItem);
+      res.send(result);
     })
 
 
