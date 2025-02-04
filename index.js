@@ -32,6 +32,8 @@ async function run() {
     const cartCollection = client.db("pearl_bistro").collection("carts");
     // part 7 find multiple documents
     const reviewsCollection = client.db("pearl_bistro").collection("reviews");
+    // part 11 users collection
+    const usersCollection = client.db("pearl_bistro").collection("users");
 
     // part 3 get all the menu
     app.get('/menu', async(req, res) =>{
@@ -69,7 +71,15 @@ async function run() {
       const query = {_id: new ObjectId(id)}
       const result = await cartCollection.deleteOne(query);
       res.send(result);
-      })
+    });
+
+
+    // step 12 users related api
+    app.post('/users', async(req, res) =>{
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    })
 
 
 
