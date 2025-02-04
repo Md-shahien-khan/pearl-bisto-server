@@ -77,10 +77,43 @@ async function run() {
     // step 12 users related api
     app.post('/users', async(req, res) =>{
       const user = req.body;
+      // step 13 insert email if user does not exist
+      const query = {email : user.email}
+      const existingUser = await usersCollection.findOne(query);
+      if(existingUser){
+        return res.send({message : 'User Already Exists', insertedId : null})
+      }
       const result = await usersCollection.insertOne(user);
       res.send(result);
-    })
+    });
 
+    // step 14 get the users
+    app.get('/users', async(req, res) =>{
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+
+    // step 15 delete user
+    app.delete('/users/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // step 16 make admin
+    app.patch('/users/admin/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter  = {_id: new ObjectId(id)};
+      const updatedDoc = {
+        $set : {
+          role : 'admin'
+        }
+      }
+      const result = await usersCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
