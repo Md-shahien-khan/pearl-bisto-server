@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -34,6 +35,31 @@ async function run() {
     const reviewsCollection = client.db("pearl_bistro").collection("reviews");
     // part 11 users collection
     const usersCollection = client.db("pearl_bistro").collection("users");
+
+    // Step 17 jwt related api
+    app.post('/jwt', async(req, res) =>{
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn : '1h' });
+      res.send({token});
+    });
+
+    // step 18 verify by using middlewares
+    const verifyToken = (req, res, next) =>{
+      console.log('inside verify token', req.headers.authorization);
+      if(!req.headers.authorization){
+        return res.status(401).send({message : 'forbidden access'});
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+        if(err){
+          return res.status(401).send({message : 'forbidden access'})
+        }
+        req.decoded = decoded;
+        next();
+      })
+      // next(); means if its working right then go next 
+    }
 
     // part 3 get all the menu
     app.get('/menu', async(req, res) =>{
@@ -87,8 +113,8 @@ async function run() {
       res.send(result);
     });
 
-    // step 14 get the users
-    app.get('/users', async(req, res) =>{
+    // step 14 get the users step 19 add verify
+    app.get('/users', verifyToken, async(req, res) =>{
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
