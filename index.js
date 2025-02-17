@@ -195,7 +195,7 @@ async function run() {
     });
 
     // step 27 post payment
-    app.post('/payments', async(req, res) =>{
+    app.post('/payments', verifyToken, async(req, res) =>{
       const payment = req.body;
       console.log(payment);
       const paymentResult = await paymentCollection.insertOne(payment);
@@ -218,6 +218,33 @@ async function run() {
       // }
       const result = await paymentCollection.find(query).toArray();
       res.send(result);
+    });
+
+    // step 29 payment analytics
+    app.get('/admin-stats', verifyToken, verifyAdmin, async(req, res) =>{
+      const users = await usersCollection.estimatedDocumentCount();
+      const menuItems = await menuCollection.estimatedDocumentCount();
+      const orders = await paymentCollection.estimatedDocumentCount();
+
+      const result = await paymentCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue : {
+              $sum: '$price'
+            }
+          }
+        }
+      ]).toArray();
+
+      const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+      res.send({
+        users,
+        menuItems,
+        orders,
+        revenue
+      })
     })
 
     // step 15 delete user
