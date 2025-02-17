@@ -36,6 +36,8 @@ async function run() {
     const reviewsCollection = client.db("pearl_bistro").collection("reviews");
     // part 11 users collection
     const usersCollection = client.db("pearl_bistro").collection("users");
+    // part 26 payments collection
+    const paymentCollection = client.db("pearl_bistro").collection("payments");
 
     // Step 17 jwt related api
     app.post('/jwt', async(req, res) =>{
@@ -179,6 +181,7 @@ async function run() {
     app.post('/create-payment-intent', async(req, res) =>{
       const {price} = req.body;
       const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent');
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount : amount,
@@ -189,8 +192,33 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret
       })
-    })
+    });
 
+    // step 27 post payment
+    app.post('/payments', async(req, res) =>{
+      const payment = req.body;
+      console.log(payment);
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      // Deleted each item from the cart
+      console.log('Payment Info', payment);
+      const query = {_id : {
+        $in : payment.cartIds.map(id => new ObjectId(id))
+      }}
+
+      const deleteResult = await cartCollection.deleteMany(query);
+      res.send({paymentResult, deleteResult});
+    });
+
+    // step 28 get payment
+    app.get('/payments/:email', async(req, res) =>{
+      const query = {email : req.params.email}
+      // if(req.params.email !== req.decoded.email){
+      //   return res.status(403).send({message : 'Forbidden Access'});
+      // }
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    })
 
     // step 15 delete user
     app.delete('/users/:id', verifyAdmin, verifyToken, async(req, res) => {
