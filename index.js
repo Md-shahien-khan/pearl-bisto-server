@@ -221,7 +221,7 @@ async function run() {
     });
 
     // step 29 payment analytics
-    app.get('/admin-stats', verifyToken, verifyAdmin, async(req, res) =>{
+    app.get('/admin-stats', async(req, res) =>{
       const users = await usersCollection.estimatedDocumentCount();
       const menuItems = await menuCollection.estimatedDocumentCount();
       const orders = await paymentCollection.estimatedDocumentCount();
@@ -245,6 +245,42 @@ async function run() {
         orders,
         revenue
       })
+    });
+
+    // step 30 using aggregate pipeline
+    app.get('/order-stats',verifyAdmin, verifyToken, async(req, res) =>{
+      const result = await paymentCollection.aggregate([
+        {
+          $unwind : '$menuItemIds'
+        },
+        {
+          $lookup : {
+            from : 'menu',
+            localField : 'menuItemIds',
+            foreignField: '_id',
+            as: 'menuItems'
+          }
+        },
+        {
+          $unwind : '$menuItemIds'
+        },
+        {
+          $group: {
+            _id: '$menuItems.category',
+            quantity : { $sum : 1 },
+            revenue :  { $sum: '$menuItems.price'}
+          }
+        },
+        {
+          $project:{
+            _id: 0,
+            category : '$_id',
+            quantity : '$quantity',
+            revenue : '$revenue'
+          }
+        }
+      ]).toArray();
+      res.send(result);
     })
 
     // step 15 delete user
