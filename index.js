@@ -85,9 +85,14 @@ async function run() {
     
     // reviews 
     app.get('/reviews', async (req, res) => {
-      const result = await reviewCollection.find().toArray();
+      const result = await reviewsCollection.find().toArray();
       res.send(result);
     })
+    app.post('/reviews', async( req, res) =>{
+      const item = req.body;
+      const result = await reviewsCollection.insertOne(item);
+      res.send(result);
+    });
 
     // part 3 get all the menu
     app.get('/menu', async(req, res) =>{
