@@ -3,7 +3,14 @@ const app = express();
 const cors = require('cors');
 var jwt = require('jsonwebtoken');
 require('dotenv').config();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const formData = require('form-data');
+const Mailgun = require('mailgun.js')
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAIL_GUN_API_KEY ,
+});
 const port = process.env.PORT || 5000;
 
 // Middle Ware
@@ -27,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // part 2 find multiple documents
     const menuCollection = client.db("pearl_bistro").collection("menu");
     // part 5 cart documents
@@ -76,6 +83,11 @@ async function run() {
       next();
     }
     
+    // reviews 
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    })
 
     // part 3 get all the menu
     app.get('/menu', async(req, res) =>{
@@ -171,7 +183,7 @@ async function run() {
     });
 
     // step 14 get the users step 19 add verify 21 verifyAdmin
-    app.get('/users', verifyToken, verifyAdmin, async(req, res) =>{
+    app.get('/users',  async(req, res) =>{
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -207,6 +219,25 @@ async function run() {
       }}
 
       const deleteResult = await cartCollection.deleteMany(query);
+
+
+      // Send Email
+      mg.messages.create(process.env.MAIL_SENDING_DOMAIN, {
+        from: "Mailgun Sandbox <postmaster@sandboxb106637669dc4319ba1037ca1e2c2022.mailgun.org>",
+        to: ["shawonkn58@gmail.com"],
+        subject: "Order Confirmation From Pearl Bistro",
+        text: "Congratulations Md shahien khan, you just sent an email with Mailgun",
+        html : `
+        <div>
+          <h2>Thank you for your order<h2>
+          <h4>Your Transaction Id: <strong>${payment.transactionId}</strong><h4>
+          <p>We would love to get your feedback about the food</p>
+        </div>
+        `
+      })
+      .then(msg => console.log(msg))
+      .catch(err => console.log(err));
+
       res.send({paymentResult, deleteResult});
     });
 
@@ -221,7 +252,7 @@ async function run() {
     });
 
     // step 29 payment analytics
-    app.get('/admin-stats', async(req, res) =>{
+    app.get('/admin-stats', verifyToken, verifyAdmin,async(req, res) =>{
       const users = await usersCollection.estimatedDocumentCount();
       const menuItems = await menuCollection.estimatedDocumentCount();
       const orders = await paymentCollection.estimatedDocumentCount();
@@ -248,7 +279,7 @@ async function run() {
     });
 
     // step 30 using aggregate pipeline
-    app.get('/order-stats',verifyAdmin, verifyToken, async(req, res) =>{
+    app.get('/order-stats', async(req, res) =>{
       const result = await paymentCollection.aggregate([
         {
           $unwind : '$menuItemIds'
@@ -321,8 +352,8 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // step 4 close it
